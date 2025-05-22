@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "test": "cross-env BABEL_ENV=test jest",
+    "format": "prettier --write \"./{app,components,hooks,lib,pages,src,styles}/**/*.{js,jsx,ts,tsx,json,md,css}\" --ignore-path .gitignore"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",
@@ -39,7 +41,6 @@
     "@radix-ui/react-tooltip": "1.1.6",
     "autoprefixer": "^10.4.20",
     "class-variance-authority": "^0.7.1",
-    "clsx": "^2.1.1",
     "cmdk": "1.0.4",
     "date-fns": "latest",
     "embla-carousel-react": "8.5.1",
@@ -54,18 +55,31 @@
     "react-resizable-panels": "^2.1.7",
     "recharts": "latest",
     "sonner": "^1.7.1",
-    "tailwind-merge": "^2.5.5",
     "tailwindcss-animate": "^1.0.7",
     "uuid": "latest",
     "vaul": "^0.9.6",
     "zod": "^3.24.1"
   },
   "devDependencies": {
+    "@testing-library/dom": "^10.4.0",
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.3.0",
+    "@types/jest": "^29.5.14",
     "@types/node": "^22",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "clsx": "^2.1.1",
+    "cross-env": "^7.0.3",
+    "eslint": "^9.27.0",
+    "eslint-config-next": "^15.3.2",
+    "eslint-config-prettier": "^10.1.5",
+    "jest": "^29.7.0",
+    "jest-environment-jsdom": "^29.7.0",
     "postcss": "^8",
+    "prettier": "^3.5.3",
+    "tailwind-merge": "^3.3.0",
     "tailwindcss": "^3.4.17",
+    "ts-jest": "^29.3.4",
     "typescript": "^5"
   }
 }

@@ -1,23 +1,18 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
-import { Paperclip, Send, Mic } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Textarea } from "@/components/ui/textarea"
-import { ChatMessage } from "@/components/chat-message"
-import { cn } from "@/lib/utils"
+// Paperclip, Send, Mic, Button, Textarea, cn are now primarily used in ChatInputArea
+// ChatMessage is used in MessageList
 import { FileUploadModal } from "@/components/file-upload-modal"
 import { useToast } from "@/components/ui/use-toast"
+// It's good practice to keep specific UI elements like Button here if ChatInterface itself uses them directly,
+// but in this refactor, they are mostly moved.
+import { Button } from "@/components/ui/button" // Kept for AssignmentOutputControls toggle
 import { AssignmentOutputControls } from "@/components/assignment-output-controls"
-
-// Message type definition
-interface Message {
-  id: string
-  role: "user" | "assistant" | "system"
-  content: string
-  agent: string | null
-  timestamp?: string
-}
+import { sendChatMessage, uploadFile } from "@/lib/apiClient"
+import type { Message, AgentName } from "../lib/types" // Import the shared Message and AgentName types
+import { MessageList } from "./message-list" // Import the new MessageList component
+import { ChatInputArea } from "./chat-input-area" // Import the new ChatInputArea component
 
 export function ChatInterface() {
   const [messages, setMessages] = useState<Message[]>([
@@ -31,7 +26,7 @@ export function ChatInterface() {
   ])
   const [input, setInput] = useState("")
   const [isLoading, setIsLoading] = useState(false)
-  const [currentAgent, setCurrentAgent] = useState("assignment")
+  const [currentAgent, setCurrentAgent] = useState<AgentName>("assignment") // Updated type for currentAgent
   const [uploadModalOpen, setUploadModalOpen] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const { toast } = useToast()
@@ -59,28 +54,17 @@ export function ChatInterface() {
     setIsLoading(true)
 
     try {
-      const response = await fetch("/api/chat", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          message: input,
-          agent: currentAgent,
-        }),
-      })
-
-      if (!response.ok) {
-        throw new Error("Failed to send message")
-      }
-
-      const data = await response.json()
+      // Use the new apiClient function
+      const data = await sendChatMessage(input, currentAgent)
       setMessages((prev) => [...prev, data])
     } catch (error) {
+      // Error handling remains similar, apiClient functions throw errors on failure
       console.error("Error sending message:", error)
+      // Ensure the error message is a string
+      const errorMessage = error instanceof Error ? error.message : "Failed to send message. Please try again."
       toast({
         title: "Error",
-        description: "Failed to send message. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       })
     } finally {
@@ -106,21 +90,9 @@ export function ChatInterface() {
     setMessages((prev) => [...prev, userMessage])
 
     try {
-      // Create form data for the file
-      const formData = new FormData()
-      formData.append("file", files[0]) // For simplicity, we'll just use the first file
-      formData.append("agent", currentAgent)
-
-      const response = await fetch("/api/upload", {
-        method: "POST",
-        body: formData,
-      })
-
-      if (!response.ok) {
-        throw new Error("Failed to upload file")
-      }
-
-      const data = await response.json()
+      // Use the new apiClient function for file upload
+      // files[0] is used as per original logic
+      const data = await uploadFile(files[0], currentAgent)
 
       if (data.message) {
         setMessages((prev) => [...prev, data.message])
@@ -131,10 +103,13 @@ export function ChatInterface() {
         description: "Your file has been successfully uploaded and processed.",
       })
     } catch (error) {
+      // Error handling remains similar, apiClient functions throw errors on failure
       console.error("Error uploading file:", error)
+      // Ensure the error message is a string
+      const errorMessage = error instanceof Error ? error.message : "Failed to upload file. Please try again."
       toast({
         title: "Error",
-        description: "Failed to upload file. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       })
     } finally {
@@ -150,36 +125,12 @@ export function ChatInterface() {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex-1 overflow-y-auto p-4">
-        <div className="space-y-4">
-          {messages.map((message) => (
-            <ChatMessage key={message.id} message={message} />
-          ))}
-          {isLoading && (
-            <div className="flex gap-3">
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-200">
-                <span className="h-2 w-2 animate-pulse rounded-full bg-gray-500"></span>
-              </div>
-              <div className="max-w-[80%] rounded-lg bg-gray-100 p-3">
-                <div className="flex space-x-2">
-                  <div className="h-2 w-2 animate-bounce rounded-full bg-gray-400"></div>
-                  <div
-                    className="h-2 w-2 animate-bounce rounded-full bg-gray-400"
-                    style={{ animationDelay: "0.2s" }}
-                  ></div>
-                  <div
-                    className="h-2 w-2 animate-bounce rounded-full bg-gray-400"
-                    style={{ animationDelay: "0.4s" }}
-                  ></div>
-                </div>
-              </div>
-            </div>
-          )}
-          <div ref={messagesEndRef} />
-        </div>
-      </div>
+      {/* Use the new MessageList component */}
+      <MessageList messages={messages} isLoading={isLoading} messagesEndRef={messagesEndRef} />
+
+      {/* AssignmentOutputControls remains here for now */}
       {agent === "assignment" && messages.length > 0 && (
-        <div className="border-t border-gray-200 pt-4 pb-2">
+        <div className="border-t border-gray-200 pt-4 pb-2 px-4"> {/* Added px-4 for consistency */}
           <div className="flex justify-between items-center mb-2">
             <h3 className="text-sm font-medium text-gray-700">Output Options</h3>
             <Button variant="ghost" size="sm" onClick={toggleOutputControls}>
@@ -211,53 +162,16 @@ export function ChatInterface() {
           )}
         </div>
       )}
-      <div className="border-t bg-white p-4">
-        <div className="flex items-end gap-2">
-          <Button
-            variant="outline"
-            size="icon"
-            className="shrink-0"
-            onClick={() => setUploadModalOpen(true)}
-            disabled={isLoading}
-          >
-            <Paperclip className="h-5 w-5" />
-            <span className="sr-only">Attach file</span>
-          </Button>
-          <div className="relative flex-1">
-            <Textarea
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder={isLoading ? "Waiting for response..." : "Type your message..."}
-              className="min-h-[80px] resize-none pr-12"
-              disabled={isLoading}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault()
-                  handleSendMessage()
-                }
-              }}
-            />
-            <div className="absolute bottom-2 right-2 flex gap-2">
-              <Button variant="ghost" size="icon" className="h-8 w-8" disabled={isLoading}>
-                <Mic className="h-5 w-5" />
-                <span className="sr-only">Voice input</span>
-              </Button>
-              <Button
-                size="icon"
-                className={cn(
-                  "h-8 w-8 bg-[#3B82F6] hover:bg-[#1E3A8A]",
-                  (!input.trim() || isLoading) && "opacity-50 cursor-not-allowed",
-                )}
-                onClick={handleSendMessage}
-                disabled={!input.trim() || isLoading}
-              >
-                <Send className="h-5 w-5" />
-                <span className="sr-only">Send message</span>
-              </Button>
-            </div>
-          </div>
-        </div>
-      </div>
+
+      {/* Use the new ChatInputArea component */}
+      <ChatInputArea
+        input={input}
+        setInput={setInput}
+        isLoading={isLoading}
+        handleSendMessage={handleSendMessage}
+        onFileUploadClick={() => setUploadModalOpen(true)}
+      />
+
       <FileUploadModal open={uploadModalOpen} onOpenChange={setUploadModalOpen} onUpload={handleFileUpload} />
     </div>
   )

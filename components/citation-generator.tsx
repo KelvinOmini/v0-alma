@@ -337,4 +337,12 @@ export function CitationGenerator() {
         <CardContent>
           <div className="space-y-4">
             <div className="rounded-lg border p-4">
-              <h3 className="mb-3 font-semibold">Save\
+              <h3 className="mb-3 font-semibold">Save</h3>
+              {/* TODO: Add content for Citation Management section */}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </div> // This closes the main wrapping div of the component
+  );
+}
